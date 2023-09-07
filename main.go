@@ -39,11 +39,16 @@ func main() {
 			code := string(content)
 			funcMap = make(map[string]FuncInfo)
 			findFunctions(code)
+			// Add import statement for genericutils after the package <package> statement
+			const genericUtilsPath = "github.com/acheong08/rusty-go/genericutils"
+			// Get package name with regex
+			packageRegex := regexp.MustCompile(`package (\w+)`)
+			packageMatch := packageRegex.FindStringSubmatch(code)
+			packageName := packageMatch[1]
+			// Add import statement after package statement
+			code = strings.Replace(code, "package "+packageName, "package "+packageName+"\n\nimport (\n\t\""+genericUtilsPath+"\"\n)", 1)
+
 			code = replaceQuestionMarks(code)
-			code += "\n" + strings.Trim(`func makeGenericWithDefault[T any]() T {
-				var t T
-				return t
-			`, "\n\r\t ") + "\n}"
 			// Write the modified code to a new file with the .go extension
 			err = os.WriteFile(path[:len(path)-4]+".go", []byte(code), 0644)
 			if err != nil {
@@ -99,7 +104,7 @@ func replaceQuestionMarks(code string) string {
 			case "error":
 				defaultValues[i] = "err"
 			default:
-				defaultValues[i] = fmt.Sprintf("makeGenericWithDefault[%s]()", t)
+				defaultValues[i] = fmt.Sprintf("genericutils.MakeGenericWithDefault[%s]()", t)
 			}
 		}
 		defaultValue := strings.Join(defaultValues, ", ")
